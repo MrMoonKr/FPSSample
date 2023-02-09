@@ -115,29 +115,29 @@ namespace Cinemachine.PostFX
         static void OnCameraCut(CinemachineBrain brain)
         {
             // Debug.Log("Camera cut event");
-            PostProcessLayer postFX = brain.PostProcessingComponent as PostProcessLayer;
-            if (postFX == null)
-                brain.PostProcessingComponent = null;   // object deleted
-            else
-                postFX.ResetHistory();
+            //PostProcessLayer postFX = brain.PostProcessingComponent as PostProcessLayer;
+            //if (postFX == null)
+            //    brain.PostProcessingComponent = null;   // object deleted
+            //else
+            //    postFX.ResetHistory();
         }
 
         static void ApplyPostFX(CinemachineBrain brain)
         {
             //UnityEngine.Profiling.Profiler.BeginSample("CinemachinePostProcessing.ApplyPostFX");
-            PostProcessLayer ppLayer = brain.PostProcessingComponent as PostProcessLayer;
-            if (ppLayer == null || !ppLayer.enabled  || ppLayer.volumeLayer == 0)
-                return;
+            //PostProcessLayer ppLayer = brain.PostProcessingComponent as PostProcessLayer;
+            //if (ppLayer == null || !ppLayer.enabled  || ppLayer.volumeLayer == 0)
+            //    return;
 
             CameraState state = brain.CurrentCameraState;
             int numBlendables = state.NumCustomBlendables;
-            List<PostProcessVolume> volumes = GetDynamicBrainVolumes(brain, ppLayer, numBlendables);
-            for (int i = 0; i < volumes.Count; ++i)
-            {
-                volumes[i].weight = 0;
-                volumes[i].sharedProfile = null;
-                volumes[i].profile = null;
-            }
+            //List<PostProcessVolume> volumes = GetDynamicBrainVolumes(brain, ppLayer, numBlendables);
+            //for (int i = 0; i < volumes.Count; ++i)
+            //{
+            //    volumes[i].weight = 0;
+            //    volumes[i].sharedProfile = null;
+            //    volumes[i].profile = null;
+            //}
             PostProcessVolume firstVolume = null;
             int numPPblendables = 0;
             for (int i = 0; i < numBlendables; ++i)
@@ -146,14 +146,14 @@ namespace Cinemachine.PostFX
                 CinemachinePostProcessing src = b.m_Custom as CinemachinePostProcessing;
                 if (!(src == null)) // in case it was deleted
                 {
-                    PostProcessVolume v = volumes[i];
-                    if (firstVolume == null)
-                        firstVolume = v;
-                    v.sharedProfile = src.Profile;
-                    v.isGlobal = true;
-                    v.priority = float.MaxValue-(numBlendables-i)-1;
-                    v.weight = b.m_Weight;
-                    ++numPPblendables;
+                    //PostProcessVolume v = volumes[i];
+                    //if (firstVolume == null)
+                    //    firstVolume = v;
+                    //v.sharedProfile = src.Profile;
+                    //v.isGlobal = true;
+                    //v.priority = float.MaxValue-(numBlendables-i)-1;
+                    //v.weight = b.m_Weight;
+                    //++numPPblendables;
                 }
 #if true // set this to true to force first weight to 1
                 // If more than one volume, then set the frst one's weight to 1
@@ -214,16 +214,16 @@ namespace Cinemachine.PostFX
 
         static void StaticPostFXHandler(CinemachineBrain brain)
         {
-            PostProcessLayer postFX = brain.PostProcessingComponent as PostProcessLayer;
-            if (postFX == null)
-            {
-                brain.PostProcessingComponent = brain.GetComponent<PostProcessLayer>();
-                postFX = brain.PostProcessingComponent as PostProcessLayer;
-                if (postFX != null)
-                        brain.m_CameraCutEvent.AddListener(CinemachinePostProcessing.OnCameraCut);
-            }
-            if (postFX != null)
-                CinemachinePostProcessing.ApplyPostFX(brain);
+            //PostProcessLayer postFX = brain.PostProcessingComponent as PostProcessLayer;
+            //if (postFX == null)
+            //{
+            //    brain.PostProcessingComponent = brain.GetComponent<PostProcessLayer>();
+            //    postFX = brain.PostProcessingComponent as PostProcessLayer;
+            //    if (postFX != null)
+            //            brain.m_CameraCutEvent.AddListener(CinemachinePostProcessing.OnCameraCut);
+            //}
+            //if (postFX != null)
+            //    CinemachinePostProcessing.ApplyPostFX(brain);
         }
 
 #if UNITY_EDITOR
