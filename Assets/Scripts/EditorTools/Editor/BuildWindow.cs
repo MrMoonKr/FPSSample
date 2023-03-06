@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Linq;
 using UnityEngine;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using System.IO;
 using System.Collections.Generic;
 using Unity.Mathematics;
@@ -34,12 +35,12 @@ public class BuildWindow : EditorWindow
     [Serializable]
     class QuickstartData
     {
-        public QuickstartMode mode = QuickstartMode.Multiplayer;
-        public int levelIndex = 0;
-        public EditorRole editorRole;
-        public int clientCount = 1;
-        public bool headlessServer = true;
-        public string defaultArguments = "";
+        public QuickstartMode   mode = QuickstartMode.Multiplayer;
+        public int              levelIndex = 0;
+        public EditorRole       editorRole;
+        public int              clientCount = 1;
+        public bool             headlessServer = true;
+        public string           defaultArguments = "";
         public List<QuickstartEntry> entries = new List<QuickstartEntry>();
     }
 
@@ -47,19 +48,19 @@ public class BuildWindow : EditorWindow
     [Serializable]
     class QuickstartEntry
     {
-        public GameLoopMode gameLoopMode = GameLoopMode.Client;
+        public GameLoopMode     gameLoopMode = GameLoopMode.Client;
 
-        public bool runInEditor;
-        public bool headless;
+        public bool             runInEditor;
+        public bool             headless;
 
         //        public Vector2 windowPos;
         //        public bool useWindowPos;
 
-        public string GetArguments(string levelname, string defaultArguments)
+        public string GetArguments( string levelname, string defaultArguments )
         {
             var arguments = "";
 
-            switch (gameLoopMode)
+            switch ( gameLoopMode )
             {
                 case GameLoopMode.Serve:
                     arguments += " +serve " + levelname;
@@ -72,8 +73,10 @@ public class BuildWindow : EditorWindow
                     break;
             }
 
-            if (headless)
+            if ( headless )
+            {
                 arguments += " -batchmode -nographics";
+            }
 
             arguments += " " + defaultArguments;
             return arguments;
@@ -97,57 +100,60 @@ public class BuildWindow : EditorWindow
     private void OnEnable()
     {
         var str = EditorPrefs.GetString(quickStartDataKey, "");
-        if (str != "")
-            quickstartData = JsonUtility.FromJson<QuickstartData>(str);
+        if ( str != "" )
+            quickstartData = JsonUtility.FromJson<QuickstartData>( str );
         else
             quickstartData = new QuickstartData();
     }
 
-    [MenuItem("FPS Sample/Windows/Project Tools")]
+    [MenuItem( "FPS Sample/Windows/Project Tools" )]
     public static void ShowWindow()
     {
-        GetWindow<BuildWindow>(false, "Project Tools", true);
+        GetWindow<BuildWindow>( false, "Project Tools", true );
     }
 
     void OnGUI()
     {
-        Profiler.BeginSample("BuildWindow.OnGUI");
+        Profiler.BeginSample( "BuildWindow.OnGUI" );
 
-        // We keep levelinfos in a member variable. This forces a reference to the LevelInfos. Otherwise they will be nuked by OpenScene()
-        if (m_LevelInfos == null)
+        // We keep levelinfos in a member variable.
+        // This forces a reference to the LevelInfos. Otherwise they will be nuked by OpenScene()
+        if ( m_LevelInfos == null )
+        {
             m_LevelInfos = BuildTools.LoadLevelInfos();
+        }
 
         // Verify levelinfos
         bool loadLevelInfos = false;
-        foreach (var levelInfo in m_LevelInfos)
+        foreach ( var levelInfo in m_LevelInfos )
         {
-            if (levelInfo == null)
+            if ( levelInfo == null )
             {
                 loadLevelInfos = true;
                 break;
             }
         }
-        if(loadLevelInfos)
+        if ( loadLevelInfos )
+        {
             m_LevelInfos = BuildTools.LoadLevelInfos();
+        }
 
-        
-        
-        m_ScrollPos = GUILayout.BeginScrollView(m_ScrollPos);
 
-        GUILayout.Label("Project", EditorStyles.boldLabel);
+        m_ScrollPos = GUILayout.BeginScrollView( m_ScrollPos );
+        { 
+            GUILayout.Label( "Project Path", EditorStyles.boldLabel );
+            GUILayout.TextArea( Application.dataPath.BeforeLast( "Assets" ) );
 
-        GUILayout.TextArea(Application.dataPath.BeforeLast("Assets"));
+            DrawLevelSelect();
 
-        DrawLevelSelect();
+            GUILayout.Space( 10.0f );
 
-        GUILayout.Space(10.0f);
+            DrawBuildTools();
 
-        DrawBuildTools();
+            GUILayout.Space( 10.0f );
 
-        GUILayout.Space(10.0f);
-
-        DrawQuickStart();
-
+            DrawQuickStart();
+        }
         GUILayout.EndScrollView();
 
         Profiler.EndSample();
@@ -155,121 +161,150 @@ public class BuildWindow : EditorWindow
 
     void DrawLevelSelect()
     {
-        Profiler.BeginSample("DrawLevelSelect");
+        Profiler.BeginSample( "DrawLevelSelect" );
 
-        GUILayout.Label("Levels", EditorStyles.boldLabel);
-        GUILayout.BeginVertical(EditorStyles.textArea);
+        GUILayout.Label( "Levels", EditorStyles.boldLabel );
 
-        GUILayout.BeginHorizontal();
-        GUILayout.Label("Bootstrapper", GUILayout.ExpandWidth(true));
-        GUILayout.BeginHorizontal(GUILayout.Width(100));
-        if (GUILayout.Button("Open"))
-        {
-            if (UnityEditor.SceneManagement.EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-            {
-                var scene = UnityEditor.EditorBuildSettings.scenes[0];
-                UnityEditor.SceneManagement.EditorSceneManager.OpenScene(scene.path, UnityEditor.SceneManagement.OpenSceneMode.Single);
-            }
-        }
-        GUILayout.EndHorizontal();
-        GUILayout.EndHorizontal();
+        GUILayout.BeginVertical( EditorStyles.textArea );
+        { 
+            // Bootstrapper Scene
 
-        
-        
-        
-        
-        
-        
-        LevelInfo openLevel = null;
-        foreach (var levelInfo in m_LevelInfos)
-        {
             GUILayout.BeginHorizontal();
-            GUILayout.Label(levelInfo.name, GUILayout.ExpandWidth(true));
-            GUILayout.BeginHorizontal(GUILayout.Width(100));
-            if (GUILayout.Button("Open"))
+            GUILayout.Label( "Bootstrapper", GUILayout.ExpandWidth( true ) );
+            GUILayout.BeginHorizontal( GUILayout.Width( 100 ) );
+            if ( GUILayout.Button( "Open" ) )
             {
-                if (UnityEditor.SceneManagement.EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                if ( EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo() )
                 {
-                    openLevel = levelInfo;
+                    var scene = EditorBuildSettings.scenes[0];
+                    EditorSceneManager.OpenScene( scene.path, OpenSceneMode.Single );
                 }
             }
-            if (GUILayout.Button("Serve"))
+            GUILayout.EndHorizontal();
+            GUILayout.EndHorizontal();
+
+            // Other Scenes
+
+            LevelInfo openLevel = null;
+            foreach ( var levelInfo in m_LevelInfos )
             {
-                RunBuild("+serve " + levelInfo.name + " -batchmode -nographics");
+                GUILayout.BeginHorizontal();
+                GUILayout.Label( levelInfo.name, GUILayout.ExpandWidth( true ) );
+                GUILayout.BeginHorizontal( GUILayout.Width( 100 ) );
+                if ( GUILayout.Button( "Open" ) )
+                {
+                    if ( EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo() )
+                    {
+                        openLevel = levelInfo;
+                    }
+                }
+                if ( GUILayout.Button( "Serve" ) )
+                {
+                    RunBuild( "+serve " + levelInfo.name + " -batchmode -nographics" );
+                }
+                GUILayout.EndHorizontal();
+                GUILayout.EndHorizontal();
             }
-            GUILayout.EndHorizontal();
-            GUILayout.EndHorizontal();
+
+            if ( openLevel != null )
+            {
+                EditorSceneManager.OpenScene( AssetDatabase.GetAssetPath( openLevel.main_scene ), OpenSceneMode.Single );
+            }
+
         }
         GUILayout.EndVertical();
 
         Profiler.EndSample();
 
-        if (openLevel != null)
-        {
-            UnityEditor.SceneManagement.EditorSceneManager.OpenScene(AssetDatabase.GetAssetPath(openLevel.main_scene), UnityEditor.SceneManagement.OpenSceneMode.Single);
-        }
+        //if ( openLevel != null )
+        //{
+        //    UnityEditor.SceneManagement.EditorSceneManager.OpenScene( AssetDatabase.GetAssetPath( openLevel.main_scene ), UnityEditor.SceneManagement.OpenSceneMode.Single );
+        //}
     }
 
-    static string GetBuildPath(BuildTarget buildTarget)
+    /// <summary>
+    /// 빌드 폴더명 "AutoBuild"
+    /// </summary>
+    /// <param name="buildTarget"></param>
+    /// <returns></returns>
+    static string GetBuildPath( BuildTarget buildTarget )
     {
-        if (buildTarget == BuildTarget.PS4)
+        if ( buildTarget == BuildTarget.PS4 )
             return "AutoBuildPS4";
         else
             return "AutoBuild";
     }
 
-    static string GetBuildExeName(BuildTarget buildTarget)
+    /// <summary>
+    /// 빌드 실행 파일명 "AutoBuild.exe"
+    /// </summary>
+    /// <param name="buildTarget"></param>
+    /// <returns></returns>
+    static string GetBuildExeName( BuildTarget buildTarget )
     {
-        if (buildTarget == BuildTarget.PS4)
+        if ( buildTarget == BuildTarget.PS4 )
             return "AutoBuild";
         else
             return "AutoBuild.exe";
     }
 
-    static string GetBuildExe(BuildTarget buildTarget)
+    /// <summary>
+    /// 빌드 실행 파일명 "AutoBuild.exe"
+    /// </summary>
+    /// <param name="buildTarget"></param>
+    /// <returns></returns>
+    static string GetBuildExe( BuildTarget buildTarget )
     {
-        if (buildTarget == BuildTarget.PS4)
+        if ( buildTarget == BuildTarget.PS4 )
             return "AutoBuild/AutoBuild.bat";
         else
             return "AutoBuild.exe";
     }
 
-    static string GetBundlePath(BuildTarget buildTarget)
+    /// <summary>
+    /// 에셋번들 저장 경로명 "AutoBuild"
+    /// </summary>
+    /// <param name="buildTarget"></param>
+    /// <returns></returns>
+    static string GetBundlePath( BuildTarget buildTarget )
     {
         // On PS4 we copy to "Assets/StreamingAssets" later
-        return GetBuildPath(buildTarget);
+        return GetBuildPath( buildTarget );
     }
 
-    static bool s_SingleLevelBuilding = false;
-    static bool s_ForceBuildBundles = true;
+    static bool s_SingleLevelBuilding   = false;
+    static bool s_ForceBuildBundles     = true;
+
     void DrawBuildTools()
     {
         var action = BuildAction.None;
 
-        GUILayout.Label("Bundles (" + PrettyPrintTimeStamp(TimeLastBuildBundles()) + ")", EditorStyles.boldLabel);
+        // 번들 빌드
+
+        GUILayout.Label( "Bundles (" + PrettyPrintTimeStamp( TimeLastBuildBundles() ) + ")", EditorStyles.boldLabel );
 
         var buildBundledLevels = false;
         var buildBundledAssets = false;
         List<LevelInfo> buildOnlyLevels = null;
 
         GUILayout.BeginHorizontal();
-        s_SingleLevelBuilding = EditorGUILayout.Toggle("Single level building", s_SingleLevelBuilding);
-        
+        s_SingleLevelBuilding = EditorGUILayout.Toggle( "Single level building", s_SingleLevelBuilding );
+
         // TODO (mogensh) We always force bundle build until we are sure non-forced works         
         // s_ForceBuildBundles = EditorGUILayout.Toggle("Force Build Bundles", s_ForceBuildBundles);
 
         GUILayout.EndHorizontal();
 
-        if (s_SingleLevelBuilding)
+        if ( s_SingleLevelBuilding )
         {
             GUILayout.BeginVertical();
-            foreach (var l in m_LevelInfos)
+            foreach ( var l in m_LevelInfos )
             {
-                if (GUILayout.Button("Build only: " + l.name + (s_ForceBuildBundles ? " [force]" : "")))
+                if ( GUILayout.Button( "Build only: " + l.name + ( s_ForceBuildBundles ? " [force]" : "" ) ) )
                 {
                     buildBundledLevels = true;
                     buildOnlyLevels = new List<LevelInfo>();
-                    buildOnlyLevels.Add(l);
+                    buildOnlyLevels.Add( l );
                     break;
                 }
             }
@@ -277,15 +312,15 @@ public class BuildWindow : EditorWindow
         }
 
         GUILayout.BeginHorizontal();
-        if (GUILayout.Button("Levels" + (s_ForceBuildBundles ? " [force]" : "")))
+        if ( GUILayout.Button( "Levels" + ( s_ForceBuildBundles ? " [force]" : "" ) ) )
         {
             buildBundledLevels = true;
         }
-        if (GUILayout.Button("Assets" + (s_ForceBuildBundles ? " [force]" : "")))
+        if ( GUILayout.Button( "Assets" + ( s_ForceBuildBundles ? " [force]" : "" ) ) )
         {
             buildBundledAssets = true;
         }
-        if (GUILayout.Button("All" + (s_ForceBuildBundles ? " [force]" : "")))
+        if ( GUILayout.Button( "All" + ( s_ForceBuildBundles ? " [force]" : "" ) ) )
         {
             buildBundledLevels = true;
             buildBundledAssets = true;
@@ -293,155 +328,160 @@ public class BuildWindow : EditorWindow
         GUILayout.EndHorizontal();
 
         var buildTarget = EditorUserBuildSettings.activeBuildTarget;    // BuildTarget.StandaloneWindows64
-        if (buildBundledLevels || buildBundledAssets)
+        if ( buildBundledLevels || buildBundledAssets )
         {
-            BuildTools.BuildBundles(GetBundlePath(buildTarget), buildTarget, buildBundledAssets, buildBundledLevels, s_ForceBuildBundles, buildOnlyLevels);
-            if (buildTarget == BuildTarget.PS4)
+            BuildTools.BuildBundles( GetBundlePath( buildTarget ), buildTarget, buildBundledAssets, buildBundledLevels, s_ForceBuildBundles, buildOnlyLevels );
+            if ( buildTarget == BuildTarget.PS4 )
             {
                 // Copy the asset bundles into the PS4 game folder too
                 var bundlePathSrc = GetBundlePath(buildTarget) + "/" + SimpleBundleManager.assetBundleFolder;
                 var bundlePathDst = GetBuildPath(buildTarget) + "/" + GetBuildExeName(buildTarget) + "/Media/StreamingAssets/" + SimpleBundleManager.assetBundleFolder;
-                BuildTools.CopyDirectory(bundlePathSrc, bundlePathDst);
+                BuildTools.CopyDirectory( bundlePathSrc, bundlePathDst );
             }
             GUIUtility.ExitGUI();
         }
 
-        GUILayout.Space(10.0f);
-        GUILayout.Label("Game (" + PrettyPrintTimeStamp(TimeLastBuildGame()) + ")", EditorStyles.boldLabel);
-        GUILayout.Space(1.0f);
+        GUILayout.Space( 10.0f );
 
-        GUILayout.Label("Building for: " + buildTarget.ToString() + " use normal build window to change.", GUILayout.ExpandWidth(false));
+        // 게임 빌드
+
+        GUILayout.Label( "Game (" + PrettyPrintTimeStamp( TimeLastBuildGame() ) + ")", EditorStyles.boldLabel );
+        GUILayout.Space( 1.0f );
+
+        GUILayout.Label( "Building for: " + buildTarget.ToString() + " use normal build window to change.", GUILayout.ExpandWidth( false ) );
 
         GUILayout.BeginHorizontal();
-        m_BuildDevelopment = EditorGUILayout.Toggle("Development build", m_BuildDevelopment);
-        GUI.enabled = m_BuildDevelopment;
-        m_ConnectProfiler = EditorGUILayout.Toggle("Connect profiler", m_ConnectProfiler);
-        GUI.enabled = true;
+        m_BuildDevelopment  = EditorGUILayout.Toggle( "Development build", m_BuildDevelopment );
+        GUI.enabled         = m_BuildDevelopment;
+        m_ConnectProfiler   = EditorGUILayout.Toggle( "Connect profiler", m_ConnectProfiler );
+        GUI.enabled         = true;
         GUILayout.EndHorizontal();
 
-        m_IL2CPP = EditorGUILayout.Toggle("IL2CPP", m_IL2CPP);
-        m_AllowDebugging = EditorGUILayout.Toggle("Allow debugging", m_AllowDebugging);
+        m_IL2CPP            = EditorGUILayout.Toggle( "IL2CPP", m_IL2CPP );
+        m_AllowDebugging    = EditorGUILayout.Toggle( "Allow debugging", m_AllowDebugging );
 
-        var m_RunArguments = EditorPrefTextField("Arguments", "RunArguments");
+        var m_RunArguments  = EditorPrefTextField("Arguments", "RunArguments");
 
         GUILayout.BeginHorizontal();
         var buildGame = false;
         var buildOnlyScripts = false;
-        if (GUILayout.Button("Build game"))
+        if ( GUILayout.Button( "Build game" ) )
         {
             buildGame = true;
         }
-        if (GUILayout.Button("Build ONLY scripts"))
+        if ( GUILayout.Button( "Build ONLY scripts" ) )
         {
             buildOnlyScripts = true;
         }
-        if (buildGame || buildOnlyScripts)
+        if ( buildGame || buildOnlyScripts )
         {
             StopAll();
 
             var buildOptions = m_AllowDebugging ? BuildOptions.AllowDebugging : BuildOptions.None;
-            if (buildOnlyScripts)
+            if ( buildOnlyScripts )
                 buildOptions |= BuildOptions.BuildScriptsOnly;
 
-            if (m_BuildDevelopment)
+            if ( m_BuildDevelopment )
             {
                 buildOptions |= BuildOptions.Development;
-                if (m_ConnectProfiler)
+                if ( m_ConnectProfiler )
                     buildOptions |= BuildOptions.ConnectWithProfiler;
             }
 
-            BuildTools.BuildGame(GetBuildPath(buildTarget), GetBuildExeName(buildTarget), buildTarget, buildOptions, "AutoBuild", m_IL2CPP);
+            BuildTools.BuildGame( GetBuildPath( buildTarget ), GetBuildExeName( buildTarget ), buildTarget, buildOptions, "AutoBuild", m_IL2CPP );
 
-            if (action == BuildAction.BuildAndRun)
-                RunBuild("");
+            if ( action == BuildAction.BuildAndRun )
+                RunBuild( "" );
             GUIUtility.ExitGUI(); // prevent warnings from gui about unmatched layouts
         }
-        if (GUILayout.Button("Run"))
+        if ( GUILayout.Button( "Run" ) )
         {
-            RunBuild(m_RunArguments);
+            RunBuild( m_RunArguments );
             GUIUtility.ExitGUI(); // prevent warnings from gui about unmatched layouts
         }
         GUILayout.EndHorizontal();
 
         GUILayout.BeginHorizontal();
-        var path = Application.dataPath.BeforeLast("Assets") + GetBuildPath(buildTarget);
-        var windowsPath = path.Replace("/", "\\");
-        if (GUILayout.Button("Open build folder"))
+
+        var path                = Application.dataPath.BeforeLast("Assets") + GetBuildPath( buildTarget );
+        var windowsPath         = path.Replace("/", "\\");
+        if ( GUILayout.Button( "Open build folder" ) )
         {
-            if (Directory.Exists(windowsPath))
+            if ( Directory.Exists( windowsPath ) )
             {
-                var p = new System.Diagnostics.Process();
-                p.StartInfo = new System.Diagnostics.ProcessStartInfo("explorer.exe", windowsPath);
+                var p           = new System.Diagnostics.Process();
+                p.StartInfo     = new System.Diagnostics.ProcessStartInfo( "explorer.exe", windowsPath );
                 p.Start();
             }
             else
             {
-                EditorUtility.DisplayDialog("Folder missing", string.Format("Folder {0} doesn't exist yet", windowsPath), "Ok");
+                EditorUtility.DisplayDialog( "Folder missing", string.Format( "Folder {0} doesn't exist yet", windowsPath ), "Ok" );
             }
         }
+
         GUILayout.EndHorizontal();
     }
 
     void DrawQuickStart()
     {
-        Profiler.BeginSample("DrawQuickStartMenu");
+        Profiler.BeginSample( "DrawQuickStartMenu" );
 
         GUILayout.BeginVertical();
 
         var defaultGUIBackgrounColor = GUI.backgroundColor;
 
-        if (m_LevelInfos.Count == 0)
+        if ( m_LevelInfos.Count == 0 )
         {
-            GUILayout.Label("Quick Start Disabled. No scenes defined");
+            GUILayout.Label( "Quick Start Disabled. No scenes defined" );
             return;
         }
 
-        GUILayout.Label("Quick Start", EditorStyles.boldLabel);
+        GUILayout.Label( "Quick Start", EditorStyles.boldLabel );
 
         var entryCount = quickstartData.mode != QuickstartMode.Singleplayer ? quickstartData.clientCount + 1 : 1;
-        quickstartData.levelIndex = Math.Min(quickstartData.levelIndex, m_LevelInfos.Count - 1);
+        quickstartData.levelIndex = Math.Min( quickstartData.levelIndex, m_LevelInfos.Count - 1 );
         var levelInfo = m_LevelInfos[quickstartData.levelIndex];
 
         // Make sure we have enough entries
         var minEntryCount = math.max(entryCount, 2);
-        while (minEntryCount > quickstartData.entries.Count())
-            quickstartData.entries.Add(new QuickstartEntry());
+        while ( minEntryCount > quickstartData.entries.Count() )
+            quickstartData.entries.Add( new QuickstartEntry() );
 
         var str = m_LevelInfos[quickstartData.levelIndex].name + " - ";
 
         str += "Server";
-        if (quickstartData.editorRole == EditorRole.Server)
+        if ( quickstartData.editorRole == EditorRole.Server )
         {
             str += "(Editor)";
         }
         else
         {
-            str += quickstartData.entries[0].headless ? "(Headless)" : "";
+            str += quickstartData.entries[ 0 ].headless ? "(Headless)" : "";
         }
 
         str += " & " + quickstartData.clientCount + " clients";
-        if (quickstartData.editorRole == EditorRole.Client)
+        if ( quickstartData.editorRole == EditorRole.Client )
         {
             str += "(1 in editor)";
         }
 
-        GUILayout.Label(str, EditorStyles.boldLabel);
+        GUILayout.Label( str, EditorStyles.boldLabel );
 
         // Quick start buttons
         GUILayout.BeginHorizontal();
         {
             GUI.backgroundColor = Color.green;
-            if (GUILayout.Button("Start"))
+            if ( GUILayout.Button( "Start" ) )
             {
-                for (var i = 0; i < entryCount; i++)
+                for ( var i = 0; i < entryCount; i++ )
                 {
-                    StartEntry(quickstartData.entries[i], levelInfo.name, quickstartData.defaultArguments);
+                    StartEntry( quickstartData.entries[ i ], levelInfo.name, quickstartData.defaultArguments );
                 }
             }
             GUI.backgroundColor = defaultGUIBackgrounColor;
 
             GUI.backgroundColor = Color.red;
-            if (GUILayout.Button("Stop All"))
+            if ( GUILayout.Button( "Stop All" ) )
             {
                 StopAll();
             }
@@ -452,68 +492,68 @@ public class BuildWindow : EditorWindow
         // Settings
         EditorGUI.BeginChangeCheck();
 
-        quickstartData.mode = (QuickstartMode)EditorGUILayout.EnumPopup("Mode", quickstartData.mode);
+        quickstartData.mode = ( QuickstartMode )EditorGUILayout.EnumPopup( "Mode", quickstartData.mode );
 
         var levelNames = m_LevelInfos.Select(item => item.name).ToArray();
-        quickstartData.levelIndex = EditorGUILayout.Popup("Level", quickstartData.levelIndex, levelNames);
+        quickstartData.levelIndex = EditorGUILayout.Popup( "Level", quickstartData.levelIndex, levelNames );
 
         GUI.enabled = quickstartData.mode != QuickstartMode.Singleplayer;
-        quickstartData.clientCount = EditorGUILayout.IntField("Clients", quickstartData.clientCount);
-        quickstartData.headlessServer = EditorGUILayout.Toggle("Headless server", quickstartData.headlessServer);
+        quickstartData.clientCount = EditorGUILayout.IntField( "Clients", quickstartData.clientCount );
+        quickstartData.headlessServer = EditorGUILayout.Toggle( "Headless server", quickstartData.headlessServer );
         GUI.enabled = true;
 
-        quickstartData.editorRole = (EditorRole)EditorGUILayout.EnumPopup("Use Editor as", quickstartData.editorRole);
+        quickstartData.editorRole = ( EditorRole )EditorGUILayout.EnumPopup( "Use Editor as", quickstartData.editorRole );
 
-        quickstartData.defaultArguments = EditorGUILayout.TextField("Default args", quickstartData.defaultArguments);
+        quickstartData.defaultArguments = EditorGUILayout.TextField( "Default args", quickstartData.defaultArguments );
 
 
-        quickstartData.entries[0].gameLoopMode = quickstartData.mode == QuickstartMode.Singleplayer ? GameLoopMode.Preview : GameLoopMode.Serve;
-        quickstartData.entries[0].headless = quickstartData.headlessServer;
+        quickstartData.entries[ 0 ].gameLoopMode = quickstartData.mode == QuickstartMode.Singleplayer ? GameLoopMode.Preview : GameLoopMode.Serve;
+        quickstartData.entries[ 0 ].headless = quickstartData.headlessServer;
 
-        quickstartData.entries[0].runInEditor = quickstartData.editorRole == EditorRole.Server || quickstartData.editorRole == EditorRole.Mixed;
-        quickstartData.entries[1].runInEditor = quickstartData.editorRole == EditorRole.Client || quickstartData.editorRole == EditorRole.Mixed;
+        quickstartData.entries[ 0 ].runInEditor = quickstartData.editorRole == EditorRole.Server || quickstartData.editorRole == EditorRole.Mixed;
+        quickstartData.entries[ 1 ].runInEditor = quickstartData.editorRole == EditorRole.Client || quickstartData.editorRole == EditorRole.Mixed;
 
-        for (var i = 1; i < entryCount; i++)
+        for ( var i = 1; i < entryCount; i++ )
         {
-            quickstartData.entries[i].gameLoopMode = GameLoopMode.Client;
-            quickstartData.entries[i].headless = false;
+            quickstartData.entries[ i ].gameLoopMode = GameLoopMode.Client;
+            quickstartData.entries[ i ].headless = false;
         }
 
         // Make sure only one run in editor
         var runInEditorCount = 0;
-        for (var i = 0; i < entryCount; i++)
+        for ( var i = 0; i < entryCount; i++ )
         {
-            if (quickstartData.entries[i].runInEditor)
+            if ( quickstartData.entries[ i ].runInEditor )
             {
                 runInEditorCount++;
-                quickstartData.entries[i].runInEditor = runInEditorCount <= 1;
+                quickstartData.entries[ i ].runInEditor = runInEditorCount <= 1;
             }
         }
 
         // Draw entries
-        GUILayout.Label("Started processes:");
-        for (var i = 0; i < entryCount; i++)
+        GUILayout.Label( "Started processes:" );
+        for ( var i = 0; i < entryCount; i++ )
         {
             var entry = quickstartData.entries[i];
             GUILayout.BeginVertical();
             {
                 GUILayout.BeginHorizontal();
                 {
-                    GUILayout.Space(10);
+                    GUILayout.Space( 10 );
 
-                    GUILayout.Label(entry.runInEditor ? "Editor" : "S.Alone", GUILayout.Width(50));
+                    GUILayout.Label( entry.runInEditor ? "Editor" : "S.Alone", GUILayout.Width( 50 ) );
 
-                    EditorGUILayout.SelectableLabel(entry.GetArguments(levelInfo.name, quickstartData.defaultArguments), EditorStyles.textField, GUILayout.Height(EditorGUIUtility.singleLineHeight));
+                    EditorGUILayout.SelectableLabel( entry.GetArguments( levelInfo.name, quickstartData.defaultArguments ), EditorStyles.textField, GUILayout.Height( EditorGUIUtility.singleLineHeight ) );
                 }
                 GUILayout.EndHorizontal();
             }
             GUILayout.EndVertical();
         }
 
-        if (EditorGUI.EndChangeCheck())
+        if ( EditorGUI.EndChangeCheck() )
         {
             var json = JsonUtility.ToJson(quickstartData);
-            EditorPrefs.SetString(quickStartDataKey, json);
+            EditorPrefs.SetString( quickStartDataKey, json );
         }
 
         GUILayout.EndVertical();
@@ -521,25 +561,25 @@ public class BuildWindow : EditorWindow
         Profiler.EndSample();
     }
 
-    static void StartEntry(QuickstartEntry entry, string levelname, string defaultArguments)
+    static void StartEntry( QuickstartEntry entry, string levelname, string defaultArguments )
     {
         var args = entry.GetArguments(levelname, defaultArguments);
-        if (entry.runInEditor)
-            EditorLevelManager.StartGameInEditor(args);
+        if ( entry.runInEditor )
+            EditorLevelManager.StartGameInEditor( args );
         else
         {
-            RunBuild(args);
+            RunBuild( args );
         }
     }
 
-    static string PrettyPrintTimeStamp(DateTime time)
+    static string PrettyPrintTimeStamp( DateTime time )
     {
         var span = DateTime.Now - time;
-        if (span.TotalMinutes < 60)
+        if ( span.TotalMinutes < 60 )
             return span.Minutes + " mins ago";
-        if (DateTime.Now.Date == time.Date)
+        if ( DateTime.Now.Date == time.Date )
             return time.ToShortTimeString() + " today";
-        if (DateTime.Now.Date.AddDays(-1) == time.Date)
+        if ( DateTime.Now.Date.AddDays( -1 ) == time.Date )
             return time.ToShortTimeString() + " yesterday";
         return "" + time;
     }
@@ -550,7 +590,7 @@ public class BuildWindow : EditorWindow
         EditorApplication.isPlaying = false;
     }
 
-    GUIContent TooltipContent(string text, string tooltip)
+    GUIContent TooltipContent( string text, string tooltip )
     {
         var content = new GUIContent
         {
@@ -560,44 +600,46 @@ public class BuildWindow : EditorWindow
         return content;
     }
 
-    static string EditorPrefTextField(string label, string editorPrefKey)
+    static string EditorPrefTextField( string label, string editorPrefKey )
     {
         var str = EditorPrefs.GetString(editorPrefKey);
-        str = EditorGUILayout.TextField(label, str);
+        str = EditorGUILayout.TextField( label, str );
         str = str.Trim();
-        EditorPrefs.SetString(editorPrefKey, str);
+        EditorPrefs.SetString( editorPrefKey, str );
         return str;
     }
 
-    public static void RunBuild(string args)
+    public static void RunBuild( string args )
     {
-        var buildTarget = EditorUserBuildSettings.activeBuildTarget;
-        var buildPath = GetBuildPath(buildTarget);
-        var buildExe = GetBuildExe(buildTarget);
-        Debug.Log("Starting " + buildPath + "/" + buildExe + " " + args);
-        var process = new System.Diagnostics.Process();
-        process.StartInfo.UseShellExecute = args.Contains("-batchmode");
-        process.StartInfo.FileName = Application.dataPath + "/../" + buildPath + "/" + buildExe;    // mogensh: for some reason we now need to specify project path
-        process.StartInfo.Arguments = args;
-        process.StartInfo.WorkingDirectory = buildPath;
+        var buildTarget         = EditorUserBuildSettings.activeBuildTarget;
+        var buildPath           = GetBuildPath( buildTarget );
+        var buildExe            = GetBuildExe( buildTarget );
+
+        Debug.Log( "Starting " + buildPath + "/" + buildExe + " " + args );
+
+        var process                         = new System.Diagnostics.Process();
+        process.StartInfo.UseShellExecute   = args.Contains( "-batchmode" );
+        process.StartInfo.FileName          = Application.dataPath + "/../" + buildPath + "/" + buildExe; // mogensh: for some reason we now need to specify project path
+        process.StartInfo.Arguments         = args;
+        process.StartInfo.WorkingDirectory  = buildPath;
         process.Start();
     }
 
     static bool IsPlaying()
     {
-        if (Application.isPlaying)
+        if ( Application.isPlaying )
             return true;
 
         var buildExe = GetBuildExe(EditorUserBuildSettings.activeBuildTarget);
 
         var processName = Path.GetFileNameWithoutExtension(buildExe);
         var processes = System.Diagnostics.Process.GetProcesses();
-        foreach (var process in processes)
+        foreach ( var process in processes )
         {
-            if (process.HasExited)
+            if ( process.HasExited )
                 continue;
 
-            if (process.ProcessName == processName)
+            if ( process.ProcessName == processName )
             {
                 return true;
             }
@@ -608,55 +650,57 @@ public class BuildWindow : EditorWindow
 
     static void KillAllProcesses()
     {
-        var buildExe = GetBuildExe(EditorUserBuildSettings.activeBuildTarget);
+        var buildExe        = GetBuildExe(EditorUserBuildSettings.activeBuildTarget);
 
-        var processName = Path.GetFileNameWithoutExtension(buildExe);
-        var processes = System.Diagnostics.Process.GetProcesses();
-        foreach (var process in processes)
+        var processName     = Path.GetFileNameWithoutExtension(buildExe);
+        var processes       = System.Diagnostics.Process.GetProcesses();
+        foreach ( var process in processes )
         {
-            if (process.HasExited)
+            if ( process.HasExited )
                 continue;
 
             try
             {
-                if (process.ProcessName != null && process.ProcessName == processName)
+                if ( process.ProcessName != null && process.ProcessName == processName )
                 {
                     process.Kill();
                 }
             }
-            catch (InvalidOperationException)
+            catch ( InvalidOperationException )
             {
-
+                //
             }
         }
     }
 
     static string GetAssetBundleFolder()
     {
-        return GetBundlePath(EditorUserBuildSettings.activeBuildTarget) + "/" + SimpleBundleManager.assetBundleFolder;
+        return GetBundlePath( EditorUserBuildSettings.activeBuildTarget ) + "/" + SimpleBundleManager.assetBundleFolder;
     }
 
     static DateTime TimeLastBuildBundles()
     {
-        return Directory.GetLastWriteTime(GetAssetBundleFolder());
+        return Directory.GetLastWriteTime( GetAssetBundleFolder() );
     }
-    
-    
+
+
 
     static DateTime TimeLastBuildGame()
     {
-        return Directory.GetLastWriteTime(GetBuildPath(EditorUserBuildSettings.activeBuildTarget));
+        return Directory.GetLastWriteTime( GetBuildPath( EditorUserBuildSettings.activeBuildTarget ) );
     }
 
-    bool m_BuildDevelopment = false;
-    bool m_ConnectProfiler = false;
 
-    bool m_IL2CPP = false;
-    bool m_AllowDebugging = false;
-    Vector2 m_ScrollPos;
-    List<LevelInfo> m_LevelInfos;
 
-    QuickstartData quickstartData;
+    private bool                m_BuildDevelopment = false;
+    private bool                m_ConnectProfiler = false;
+
+    private bool                m_IL2CPP = false;
+    private bool                m_AllowDebugging = false;
+    private Vector2             m_ScrollPos;
+    private List<LevelInfo>     m_LevelInfos;
+
+    private QuickstartData      quickstartData;
 }
 
 public class BuildWindowProgress : EditorWindow
@@ -664,10 +708,10 @@ public class BuildWindowProgress : EditorWindow
     static List<string> logs = new List<string>();
 
     static GUIStyle style;
-    public static void Open(string heading)
+    public static void Open( string heading )
     {
         BuildWindowProgress window = GetWindow<BuildWindowProgress>(false);
-        window.position = new Rect(200, 200, 800, 500);// new Rect(Screen.width / 2, Screen.height / 2, 800, 350);
+        window.position = new Rect( 200, 200, 800, 500 );// new Rect(Screen.width / 2, Screen.height / 2, 800, 350);
         window.ShowPopup();
         window.heading = heading;
         logs = new List<string>();
@@ -675,9 +719,9 @@ public class BuildWindowProgress : EditorWindow
     }
 
 
-    private static void Msg(string condition, string stackTrace, LogType type)
+    private static void Msg( string condition, string stackTrace, LogType type )
     {
-        logs.Add(condition);
+        logs.Add( condition );
     }
 
     public string heading = "Heading";
@@ -692,32 +736,32 @@ public class BuildWindowProgress : EditorWindow
     string text = "";
     void OnGUI()
     {
-        if (style == null)
+        if ( style == null )
         {
-            style = new GUIStyle(GUI.skin.label);
+            style = new GUIStyle( GUI.skin.label );
             Font f = AssetDatabase.LoadAssetAtPath<Font>("Assets/Fonts/RobotoMono-Medium.ttf");
-            if (f != null)
+            if ( f != null )
             {
                 style.font = f;
                 style.fontSize = 10;
             }
             style.richText = true;
         }
-        if(lastLogCount != logs.Count)
+        if ( lastLogCount != logs.Count )
         {
-            scroll = new Vector2(0, 100000);
-            if (logs.Count > 1000)
-                logs = logs.GetRange(logs.Count - 1000, logs.Count);
+            scroll = new Vector2( 0, 100000 );
+            if ( logs.Count > 1000 )
+                logs = logs.GetRange( logs.Count - 1000, logs.Count );
             lastLogCount = logs.Count;
-            text = string.Join("\n", logs);
+            text = string.Join( "\n", logs );
         }
-        EditorGUILayout.LabelField(heading, EditorStyles.boldLabel);
-        GUILayout.Space(20);
-        scroll = GUILayout.BeginScrollView(scroll);
-        GUILayout.Label(text, style);
+        EditorGUILayout.LabelField( heading, EditorStyles.boldLabel );
+        GUILayout.Space( 20 );
+        scroll = GUILayout.BeginScrollView( scroll );
+        GUILayout.Label( text, style );
         GUILayout.EndScrollView();
     }
-    
+
 
 
 }

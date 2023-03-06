@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -10,9 +10,10 @@ public class EditorLevelManager
 {
     static EditorLevelManager()
     {
-        EditorSceneManager.sceneOpened += OnSceneOpened;
-        EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
-        EditorApplication.update += OnUpdate;
+        EditorSceneManager.sceneOpened          += OnSceneOpened;
+
+        EditorApplication.playModeStateChanged  += OnPlayModeStateChanged;
+        EditorApplication.update                += OnUpdate;
     }
 
     public static bool IsLayeredLevel(string path)
@@ -37,33 +38,36 @@ public class EditorLevelManager
         return layerPaths.ToArray();
     }
 
-    public static void StartGameInEditor(string args)
+    public static void StartGameInEditor( string args )
     {
         // If editor already running we just process arguments
-        if (EditorApplication.isPlaying)
+        if ( EditorApplication.isPlaying )
         {
-            Console.ProcessCommandLineArguments(args.Split(' '));
+            Console.ProcessCommandLineArguments( args.Split( ' ' ) );
             return;
         }
 
         // Store command in playerprefs that will be consumed when playmode starts
-        var count = PlayerPrefs.GetInt("CustomStartupCommandCount",0);
-        PlayerPrefs.SetString(string.Format("CustomStartupCommand{0}",count), args);
+        var count = PlayerPrefs.GetInt( "CustomStartupCommandCount", 0 );
+        PlayerPrefs.SetString( string.Format( "CustomStartupCommand{0}", count ), args );
         count++;
-        PlayerPrefs.SetInt("CustomStartupCommandCount", count);
+        PlayerPrefs.SetInt( "CustomStartupCommandCount", count );
+
         EditorApplication.isPlaying = true;
     }
 
-    static void OnSceneOpened(Scene scene, OpenSceneMode mode)
+    static void OnSceneOpened( Scene scene, OpenSceneMode mode )
     {
-        if (mode == OpenSceneMode.Single)
+        if ( mode == OpenSceneMode.Single )
         {
             var path = scene.path;    // Native call and string allocation
-            if (IsLayeredLevel(path))
+            if ( IsLayeredLevel( path ) )
             {
-                var layers = GetLevelLayers(path);
-                foreach (var layer in layers)
-                    EditorSceneManager.OpenScene(layer, OpenSceneMode.Additive);
+                var layers = GetLevelLayers( path );
+                foreach ( var layer in layers )
+                {
+                    EditorSceneManager.OpenScene( layer, OpenSceneMode.Additive );
+                }
             }
         }
     }
