@@ -302,8 +302,8 @@ public class BuildWindow : EditorWindow
             {
                 if ( GUILayout.Button( "Build only: " + l.name + ( s_ForceBuildBundles ? " [force]" : "" ) ) )
                 {
-                    buildBundledLevels = true;
-                    buildOnlyLevels = new List<LevelInfo>();
+                    buildBundledLevels  = true;
+                    buildOnlyLevels     = new List<LevelInfo>();
                     buildOnlyLevels.Add( l );
                     break;
                 }
@@ -327,10 +327,11 @@ public class BuildWindow : EditorWindow
         }
         GUILayout.EndHorizontal();
 
-        var buildTarget = EditorUserBuildSettings.activeBuildTarget;    // BuildTarget.StandaloneWindows64
+        var buildTarget = EditorUserBuildSettings.activeBuildTarget; // BuildTarget.StandaloneWindows64
         if ( buildBundledLevels || buildBundledAssets )
         {
             BuildTools.BuildBundles( GetBundlePath( buildTarget ), buildTarget, buildBundledAssets, buildBundledLevels, s_ForceBuildBundles, buildOnlyLevels );
+
             if ( buildTarget == BuildTarget.PS4 )
             {
                 // Copy the asset bundles into the PS4 game folder too
@@ -338,6 +339,7 @@ public class BuildWindow : EditorWindow
                 var bundlePathDst = GetBuildPath(buildTarget) + "/" + GetBuildExeName(buildTarget) + "/Media/StreamingAssets/" + SimpleBundleManager.assetBundleFolder;
                 BuildTools.CopyDirectory( bundlePathSrc, bundlePathDst );
             }
+
             GUIUtility.ExitGUI();
         }
 
@@ -360,14 +362,15 @@ public class BuildWindow : EditorWindow
         m_IL2CPP            = EditorGUILayout.Toggle( "IL2CPP", m_IL2CPP );
         m_AllowDebugging    = EditorGUILayout.Toggle( "Allow debugging", m_AllowDebugging );
 
-        var m_RunArguments  = EditorPrefTextField("Arguments", "RunArguments");
+        var m_RunArguments  = EditorPrefTextField( "Arguments", "RunArguments" );
 
         GUILayout.BeginHorizontal();
+
         var buildGame = false;
         var buildOnlyScripts = false;
         if ( GUILayout.Button( "Build game" ) )
         {
-            buildGame = true;
+            buildGame       = true;
         }
         if ( GUILayout.Button( "Build ONLY scripts" ) )
         {
@@ -379,19 +382,26 @@ public class BuildWindow : EditorWindow
 
             var buildOptions = m_AllowDebugging ? BuildOptions.AllowDebugging : BuildOptions.None;
             if ( buildOnlyScripts )
+            {
                 buildOptions |= BuildOptions.BuildScriptsOnly;
+            }
 
             if ( m_BuildDevelopment )
             {
                 buildOptions |= BuildOptions.Development;
                 if ( m_ConnectProfiler )
+                {
                     buildOptions |= BuildOptions.ConnectWithProfiler;
+                }
             }
 
             BuildTools.BuildGame( GetBuildPath( buildTarget ), GetBuildExeName( buildTarget ), buildTarget, buildOptions, "AutoBuild", m_IL2CPP );
 
             if ( action == BuildAction.BuildAndRun )
+            {
                 RunBuild( "" );
+            }
+
             GUIUtility.ExitGUI(); // prevent warnings from gui about unmatched layouts
         }
         if ( GUILayout.Button( "Run" ) )
@@ -399,6 +409,7 @@ public class BuildWindow : EditorWindow
             RunBuild( m_RunArguments );
             GUIUtility.ExitGUI(); // prevent warnings from gui about unmatched layouts
         }
+
         GUILayout.EndHorizontal();
 
         GUILayout.BeginHorizontal();
@@ -609,6 +620,10 @@ public class BuildWindow : EditorWindow
         return str;
     }
 
+    /// <summary>
+    /// 빌드 실행.
+    /// </summary>
+    /// <param name="args">실행 옵션</param>
     public static void RunBuild( string args )
     {
         var buildTarget         = EditorUserBuildSettings.activeBuildTarget;
@@ -625,19 +640,27 @@ public class BuildWindow : EditorWindow
         process.Start();
     }
 
+    /// <summary>
+    /// 에디터가 실행중이거나 빌드가 실행중인가 여부
+    /// </summary>
+    /// <returns></returns>
     static bool IsPlaying()
     {
         if ( Application.isPlaying )
+        {
             return true;
+        }
 
-        var buildExe = GetBuildExe(EditorUserBuildSettings.activeBuildTarget);
+        var buildExe    = GetBuildExe( EditorUserBuildSettings.activeBuildTarget );
+        var processName = Path.GetFileNameWithoutExtension( buildExe );
 
-        var processName = Path.GetFileNameWithoutExtension(buildExe);
-        var processes = System.Diagnostics.Process.GetProcesses();
+        var processes   = System.Diagnostics.Process.GetProcesses();
         foreach ( var process in processes )
         {
             if ( process.HasExited )
+            {
                 continue;
+            }
 
             if ( process.ProcessName == processName )
             {
@@ -648,16 +671,21 @@ public class BuildWindow : EditorWindow
         return false;
     }
 
+    /// <summary>
+    /// 실행된 빌드 프로세스들 모두 종료시킴. Process 클래스 이용
+    /// </summary>
     static void KillAllProcesses()
     {
-        var buildExe        = GetBuildExe(EditorUserBuildSettings.activeBuildTarget);
+        var buildExe        = GetBuildExe( EditorUserBuildSettings.activeBuildTarget );
 
-        var processName     = Path.GetFileNameWithoutExtension(buildExe);
+        var processName     = Path.GetFileNameWithoutExtension( buildExe );
         var processes       = System.Diagnostics.Process.GetProcesses();
         foreach ( var process in processes )
         {
             if ( process.HasExited )
+            {
                 continue;
+            }
 
             try
             {
@@ -673,18 +701,28 @@ public class BuildWindow : EditorWindow
         }
     }
 
+    /// <summary>
+    /// 에셋번들 저장된 폴더 조회. "AutoBuild/AssetBundles"
+    /// </summary>
+    /// <returns></returns>
     static string GetAssetBundleFolder()
     {
         return GetBundlePath( EditorUserBuildSettings.activeBuildTarget ) + "/" + SimpleBundleManager.assetBundleFolder;
     }
 
+    /// <summary>
+    /// 최근 빌드 날짜 조회. 에셋번들 저장 폴더의 최근 갱신 날짜
+    /// </summary>
+    /// <returns></returns>
     static DateTime TimeLastBuildBundles()
     {
         return Directory.GetLastWriteTime( GetAssetBundleFolder() );
     }
 
-
-
+    /// <summary>
+    /// 최근 앱 빌드 날짜 조회. 빌드 저장 폴더의 최근 갱신 날짜
+    /// </summary>
+    /// <returns></returns>
     static DateTime TimeLastBuildGame()
     {
         return Directory.GetLastWriteTime( GetBuildPath( EditorUserBuildSettings.activeBuildTarget ) );
@@ -708,6 +746,7 @@ public class BuildWindowProgress : EditorWindow
     static List<string> logs = new List<string>();
 
     static GUIStyle style;
+
     public static void Open( string heading )
     {
         BuildWindowProgress window = GetWindow<BuildWindowProgress>(false);
@@ -734,6 +773,7 @@ public class BuildWindowProgress : EditorWindow
     Vector2 scroll;
     int lastLogCount = 0;
     string text = "";
+
     void OnGUI()
     {
         if ( style == null )
@@ -742,11 +782,12 @@ public class BuildWindowProgress : EditorWindow
             Font f = AssetDatabase.LoadAssetAtPath<Font>("Assets/Fonts/RobotoMono-Medium.ttf");
             if ( f != null )
             {
-                style.font = f;
-                style.fontSize = 10;
+                style.font      = f;
+                style.fontSize  = 10;
             }
             style.richText = true;
         }
+
         if ( lastLogCount != logs.Count )
         {
             scroll = new Vector2( 0, 100000 );
@@ -755,10 +796,14 @@ public class BuildWindowProgress : EditorWindow
             lastLogCount = logs.Count;
             text = string.Join( "\n", logs );
         }
+
         EditorGUILayout.LabelField( heading, EditorStyles.boldLabel );
         GUILayout.Space( 20 );
+
         scroll = GUILayout.BeginScrollView( scroll );
-        GUILayout.Label( text, style );
+        {
+            GUILayout.Label( text, style );
+        }
         GUILayout.EndScrollView();
     }
 

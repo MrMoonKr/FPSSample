@@ -1,10 +1,17 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
 
+
+/// <summary>
+/// 에셋 번들 관리자. 로드 및 언로드.
+/// </summary>
 public class SimpleBundleManager
 {
+    /// <summary>
+    /// 에셋 번들 저장 폴더 ( 상대 경로 임, 기본은 "AssetBundles" )
+    /// </summary>
     public static string assetBundleFolder = "AssetBundles";
 
     public static string GetRuntimeBundlePath()
@@ -12,7 +19,7 @@ public class SimpleBundleManager
 #if UNITY_PS4
         return Application.streamingAssetsPath + "/" + assetBundleFolder;
 #else
-        if (Application.isEditor)
+        if ( Application.isEditor )
             return "AutoBuild/" + assetBundleFolder;
         else
             return m_runtimeBundlePath.Value;
@@ -23,26 +30,26 @@ public class SimpleBundleManager
     {
     }
 
-    public static AssetBundle LoadLevelAssetBundle(string name)
+    public static AssetBundle LoadLevelAssetBundle( string name )
     {
         var bundle_pathname = GetRuntimeBundlePath() + "/" + name;
 
-        GameDebug.Log("loading:" + bundle_pathname);
+        GameDebug.Log( "loading:" + bundle_pathname );
 
         var cacheKey = name.ToLower();
 
         AssetBundle result;
-        if (!m_levelBundles.TryGetValue(cacheKey, out result))
+        if ( !m_levelBundles.TryGetValue( cacheKey, out result ) )
         {
-            result = AssetBundle.LoadFromFile(bundle_pathname);
-            if (result != null)
-                m_levelBundles.Add(cacheKey, result);
+            result = AssetBundle.LoadFromFile( bundle_pathname );
+            if ( result != null )
+                m_levelBundles.Add( cacheKey, result );
         }
 
         return result;
     }
 
-    public static void ReleaseLevelAssetBundle(string name)
+    public static void ReleaseLevelAssetBundle( string name )
     {
         // TODO (petera) : Implement unloading of asset bundles. Ideally not by name.
     }

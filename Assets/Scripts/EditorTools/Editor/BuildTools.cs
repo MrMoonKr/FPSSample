@@ -28,8 +28,22 @@ public class BuildTools
         }
     }
 
-    public static BuildReport BuildGame( string buildPath, string exeName, BuildTarget target,
-        BuildOptions opts, string buildId, bool il2cpp)
+    /// <summary>
+    /// BuildPipeline.BuildPlayer() 래퍼메소드( Wrapper Method  )
+    /// </summary>
+    /// <param name="buildPath">빌드저장폴더( 프로젝트폴더에 대한 상대경로 )</param>
+    /// <param name="exeName">실행파일명</param>
+    /// <param name="target">빌드타겟</param>
+    /// <param name="opts">빌드옵션( Development, AutoRunPlayer... )</param>
+    /// <param name="buildId"></param>
+    /// <param name="il2cpp"></param>
+    /// <returns></returns>
+    public static BuildReport BuildGame( string         buildPath, 
+                                         string         exeName, 
+                                         BuildTarget    target,
+                                         BuildOptions   opts, 
+                                         string         buildId, 
+                                         bool           il2cpp )
     {
         var levels = new string[]
         {
@@ -39,7 +53,8 @@ public class BuildTools
 
         var exePathName         = buildPath + "/" + exeName;
 
-        Debug.Log( "Building: " + exePathName );
+        Debug.Log( "Building : " + exePathName );
+
         Directory.CreateDirectory( buildPath );
 
         // Set all files to be writeable (As Unity 2017.1 sets them to read only)
@@ -106,8 +121,9 @@ public class BuildTools
             UnityEditor.PlayerSettings.SetScriptingBackend( BuildTargetGroup.Standalone, ScriptingImplementation.Mono2x );
         }
 
-        /// Colossal hack to work around build postprocessing expecting everything to be writable in the unity
-        /// installation, but if people have unity in p4 it will be readonly.
+        /// Colossal hack to work around build postprocessing 
+        /// expecting everything to be writable in the unity installation, 
+        /// but if people have unity in p4 it will be readonly.
         var editorHome = EditorApplication.applicationPath.BeforeLast("/") + "/Data/PlaybackEngines/windowsstandalonesupport";
         Debug.Log( "Checking for read/only files in standalone players" );
         if ( Directory.Exists( editorHome ) )
@@ -188,25 +204,26 @@ public class BuildTools
         return result;
     }
 
-    static AssetBundleBuild MakeSceneBundleBuild(UnityEngine.Object mainScene, string name)
+    static AssetBundleBuild MakeSceneBundleBuild( UnityEngine.Object mainScene, string name )
     {
-        var build = new AssetBundleBuild();
-        build.assetBundleName = name;
-        build.assetBundleVariant = "";
+        var build                   = new AssetBundleBuild();
+        build.assetBundleName       = name;
+        build.assetBundleVariant    = "";
 
-        var path = AssetDatabase.GetAssetPath(mainScene);
-        var scenes = new List<string>();
-        scenes.Add(path.ToLower());
+        var path                    = AssetDatabase.GetAssetPath( mainScene );
+        var scenes                  = new List<string>();
+        scenes.Add( path.ToLower() );
 
-        if (EditorLevelManager.IsLayeredLevel(path))
+        if ( EditorLevelManager.IsLayeredLevel( path ) )
         {
-            foreach (var l in EditorLevelManager.GetLevelLayers(path))
+            foreach ( var l in EditorLevelManager.GetLevelLayers( path ) )
             {
-                scenes.Add(l.ToLower());
+                scenes.Add( l.ToLower() );
             }
         }
 
-        build.assetNames = scenes.ToArray();
+        build.assetNames            = scenes.ToArray();
+
         return build;
     }
 
@@ -246,7 +263,12 @@ public class BuildTools
         return shared;
     }
 
-    public static void BuildBundles( string bundlePath, BuildTarget target, bool buildBundledAssets, bool buildBundledLevels, bool force = false, List<LevelInfo> buildOnlyLevels = null )
+    public static void BuildBundles( string         bundlePath, 
+                                     BuildTarget    target, 
+                                     bool           buildBundledAssets, 
+                                     bool           buildBundledLevels, 
+                                     bool           force = false, 
+                                     List<LevelInfo> buildOnlyLevels = null )
     {
         Debug.Log( "Scene cooking started" );
 
@@ -258,6 +280,7 @@ public class BuildTools
         }
 
         BuildAssetBundleOptions assetBundleOptions = BuildAssetBundleOptions.UncompressedAssetBundle;
+
         if ( force )
         {
             Debug.Log( "Forcing rebuild" );
@@ -308,6 +331,10 @@ public class BuildTools
         Debug.Log( "Scene cooking done" );
     }
 
+    /// <summary>
+    /// 날짜.빌드번호.변경번호
+    /// </summary>
+    /// <returns></returns>
     static string GetBuildName()
     {
         var buildNumber = System.Environment.GetEnvironmentVariable("BUILD_NUMBER");
@@ -327,16 +354,33 @@ public class BuildTools
         return name;
     }
 
+    /// <summary>
+    /// 앱이름_빌드타겟_빌드이름
+    /// </summary>
+    /// <param name="target"></param>
+    /// <param name="buildName"></param>
+    /// <returns></returns>
     static string GetLongBuildName( BuildTarget target, string buildName )
     {
         return Application.productName + "_" + target.ToString() + "_" + buildName ;
     }
 
+    /// <summary>
+    /// Builds/빌드타겟/앱이름_빌드타겟_날짜.빌드번호.변경번호
+    /// </summary>
+    /// <param name="target"></param>
+    /// <param name="buildName"></param>
+    /// <returns></returns>
     static string GetBuildPath( BuildTarget target, string buildName )
     {
         return "Builds/" + target.ToString() + "/" + GetLongBuildName( target, buildName );
     }
 
+    /// <summary>
+    /// Builds/빌드타겟
+    /// </summary>
+    /// <param name="target"></param>
+    /// <returns></returns>
     static string GetBuildFolderPath( BuildTarget target )
     {
         return "Builds/" + target.ToString();
@@ -528,6 +572,7 @@ public class BuildTools
     static void CreateBuildWindows64( bool useIL2CPP )
     {
         Debug.Log( "Window64 build started. (" + ( useIL2CPP ? "IL2CPP" : "Mono" ) + ")" );
+
         var target              = BuildTarget.StandaloneWindows64;
         var buildName           = GetBuildName();
         var buildPath           = GetBuildPath( target, buildName );
@@ -545,12 +590,14 @@ public class BuildTools
         {
             throw new Exception( "BuildPipeline.BuildPlayer failed" );
         }
+
         if ( res.summary.result != UnityEditor.Build.Reporting.BuildResult.Succeeded )
         {
             throw new Exception( "BuildPipeline.BuildPlayer failed: " + res.ToString() );
         }
 
         Debug.Log( "Window64 build completed..." );
+
         PostProcessWindows64();
     }
 

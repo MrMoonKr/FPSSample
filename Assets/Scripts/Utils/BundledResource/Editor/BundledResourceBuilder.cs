@@ -116,6 +116,7 @@ public class BundledResourceBuilder
     public static void BuildBundles( string bundlePath, BuildTarget target, BuildAssetBundleOptions assetBundleOptions )
     {
         Debug.Log( "Verifying asset registries .." );
+
         var ok = TestRegistries();
         if ( !ok )
         {
